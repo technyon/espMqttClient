@@ -101,7 +101,7 @@ bool MqttClient::disconnected() const {
 }
 
 bool MqttClient::connect() {
-  bool result = true;
+  bool result = false;
   if (_state == State::disconnected) {
     EMC_SEMAPHORE_TAKE();
     if (_addPacketFront(_cleanSession,
@@ -114,17 +114,17 @@ bool MqttClient::connect() {
                         _willPayloadLength,
                         (uint16_t)(_keepAlive / 1000),  // 32b to 16b doesn't overflow because it comes from 16b orignally
                         _clientId)) {
+      result = true;
+      _state = State::connectingTcp1;
       #if defined(ARDUINO_ARCH_ESP32)
       if (_useInternalTask == espMqttClientTypes::UseInternalTask::YES) {
         vTaskResume(_taskHandle);
       }
       #endif
-      _state = State::connectingTcp1;
     } else {
       EMC_SEMAPHORE_GIVE();
       emc_log_e("Could not create CONNECT packet");
       _onError(0, Error::OUT_OF_MEMORY);
-      result = false;
     }
     EMC_SEMAPHORE_GIVE();
   }
@@ -329,21 +329,15 @@ int MqttClient::_sendPacket() {
   EMC_SEMAPHORE_TAKE();
   OutgoingPacket* packet = _outbox.getCurrent();
 
-  int32_t wantToWrite = 0;
-  int32_t written = 0;
+  size_t wantToWrite = 0;
+  size_t written = 0;
   if (packet && (wantToWrite == written)) {
-    // mixing signed with unsigned here but safe because of MQTT packet size limits
     wantToWrite = packet->packet.available(_bytesSent);
     if (wantToWrite == 0) {
       EMC_SEMAPHORE_GIVE();
       return 0;
     }
     written = _transport->write(packet->packet.data(_bytesSent), wantToWrite);
-    if (written < 0) {
-      emc_log_w("Write error, check connection");
-      EMC_SEMAPHORE_GIVE();
-      return -1;
-    }
     packet->timeSent = millis();
     _lastClientActivity = millis();
     _bytesSent += written;

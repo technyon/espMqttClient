@@ -12,7 +12,7 @@ the LICENSE file.
 #include <stddef.h>
 
 #include "Constants.h"
-#include "Config.h"
+#include "../Config.h"
 #include "../TypeDefs.h"
 #include "../Helpers.h"
 #include "../Logging.h"
@@ -97,7 +97,7 @@ class Packet {
   , _payloadStartIndex(0)
   , _payloadEndIndex(0)
   , _getPayload(nullptr) {
-    static_assert(sizeof...(Args) % 2 == 0);
+    static_assert(sizeof...(Args) % 2 == 0, "Subscribe should be in topic/qos pairs");
     size_t numberTopics = 2 + (sizeof...(Args) / 2);
     SubscribeItem list[numberTopics] = {topic1, qos1, topic2, qos2, args...};
     _createSubscribe(error, list, numberTopics);
