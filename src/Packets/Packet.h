@@ -17,7 +17,7 @@ the LICENSE file.
 #include "../Helpers.h"
 #include "../Logging.h"
 #include "RemainingLength.h"
-#include "String.h"
+#include "StringUtil.h"
 
 namespace espMqttClientInternals {
 
@@ -133,7 +133,7 @@ class Packet {
 
  private:
   // pass remainingLength = total size - header - remainingLengthLength!
-  bool _allocate(size_t remainingLength);
+  bool _allocate(size_t remainingLength, bool check = true);
 
   // fills header and returns index of next available byte in buffer
   size_t _fillPublishHeader(uint16_t packetId,
